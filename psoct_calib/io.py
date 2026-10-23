@@ -20,6 +20,7 @@ import numpy as np
 from scipy.io import loadmat, savemat
 
 from . import __version__
+from .exceptions import InvalidJonesFileError
 
 TILT_PATTERN = re.compile(r"Jones_(?P<tilt>[A-Za-z][A-Za-z0-9]*)_")
 _MATLAB_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,62}$")
@@ -33,7 +34,7 @@ def tilt_from_filename(path, pattern=TILT_PATTERN):
     """'Jones_tiltNeg20deg_strip0023_PD12.mat' -> 'tiltNeg20deg'."""
     m = pattern.search(os.path.basename(path))
     if m is None:
-        raise ValueError(
+        raise InvalidJonesFileError(
             f"Cannot infer the tilt name from '{os.path.basename(path)}'. "
             "Expected 'Jones_<tilt>_...'; pass the name explicitly with --tilt."
         )

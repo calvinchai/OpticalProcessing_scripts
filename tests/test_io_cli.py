@@ -5,6 +5,7 @@ import yaml
 
 from conftest import synthetic_jones, write_v73_like
 from psoct_calib.cli import main
+from psoct_calib.exceptions import InvalidJonesFileError, PSOCTError
 from psoct_calib.io import (
     JonesFile, check_key, load_calibration, load_mat_dict, save_calibration,
     tilt_from_filename,
@@ -16,6 +17,10 @@ TILTS = ["tiltNeg20deg", "tiltPos20deg", "normal0deg"]
 def test_tilt_from_filename():
     assert tilt_from_filename("/x/Jones_tiltNeg20deg_strip0023_PD12.mat") == "tiltNeg20deg"
     assert tilt_from_filename("Jones_normal0deg_strip0001_PD3.mat") == "normal0deg"
+    with pytest.raises(InvalidJonesFileError):
+        tilt_from_filename("something_else.mat")
+    with pytest.raises(PSOCTError):
+        tilt_from_filename("something_else.mat")
     with pytest.raises(ValueError):
         tilt_from_filename("something_else.mat")
     with pytest.raises(ValueError):

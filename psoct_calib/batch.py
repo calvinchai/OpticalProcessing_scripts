@@ -28,11 +28,14 @@ Command line::
         --path-in DATA --path-out OUT --calib calibration_profile.mat   # no slice
 """
 
+import logging
 import os
 import time
 
 import numpy as np
 from scipy.io import savemat
+
+logger = logging.getLogger(__name__)
 
 from .calibration import apply_calibration
 from .io import JonesFile, check_key, load_calibration
@@ -79,6 +82,15 @@ def process_tile(J1, J2, calibration_M, sigma=1.0, offset=0.0, intensity=True):
     Returns a dict with float32 arrays of shape (I, J, K):
     ``{'Q', 'U', 'V'}`` and, if ``intensity``, ``'inten'``.
     """
+    if J1.shape != J2.shape:
+        raise ValueError(f"J1 and J2 shapes do not match: {J1.shape} vs {J2.shape}")
+    J = J1.shape[1]
+    if calibration_M.shape[0] != J:
+        raise ValueError(
+            f"calibration_M has {calibration_M.shape[0]} columns along axis 0, "
+            f"but data tile has J={J} columns (shape {J1.shape})"
+        )
+
     out = {}
     if intensity:
         out["inten"] = intensity_db(J1, J2).astype(np.float32)
@@ -154,7 +166,7 @@ def output_paths(path_out, tilt, slice_num, tile, intensity=True,
 def run_tiles(path_in, path_out, calib, tilt, slice_num=None, tiles=DEFAULT_TILES,
               sigma=1.0, offset=0.0, names=("J1", "J2"), intensity=True,
               input_pattern=None, output_pattern=None,
-              skip_existing=False, skip_missing=False, compress=False, log=print):
+              skip_existing=False, skip_missing=False, compress=False, log=None):
     """Process every tile of one tilt and slice.
 
     Parameters
@@ -178,6 +190,8 @@ def run_tiles(path_in, path_out, calib, tilt, slice_num=None, tiles=DEFAULT_TILE
     list of int : the tiles that were processed.
     """
     check_key(tilt)
+    if log is None:
+        log = logger.info
     if isinstance(calib, (str, os.PathLike)):
         calib = load_calibration(calib)
     if tilt not in calib:

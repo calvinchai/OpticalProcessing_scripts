@@ -56,6 +56,16 @@ def test_process_tile_matches_script():
         assert np.allclose(got[k], ref[k], atol=1e-6), k
 
 
+def test_process_tile_shape_validation():
+    import pytest
+    J1, J2 = synthetic_jones((12, 20, 16), seed=7)
+    M = _calib(20)
+    with pytest.raises(ValueError, match="shapes do not match"):
+        process_tile(J1, J2[:10], M)
+    with pytest.raises(ValueError, match="columns"):
+        process_tile(J1, J2, _calib(15))
+
+
 def test_parse_tiles():
     assert parse_tiles("1-55") == list(range(1, 56))
     assert parse_tiles("1,4,10-12") == [1, 4, 10, 11, 12]

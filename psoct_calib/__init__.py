@@ -33,6 +33,11 @@ from .io import (
     save_calibration,
     load_profiles,
 )
+from .exceptions import (
+    PSOCTError,
+    CalibrationError,
+    InvalidJonesFileError,
+)
 
 __all__ = [
     "rot_mueller",
@@ -56,4 +61,7 @@ __all__ = [
     "load_calibration",
     "save_calibration",
     "load_profiles",
+    "PSOCTError",
+    "CalibrationError",
+    "InvalidJonesFileError",
 ]

@@ -249,7 +249,7 @@ def cmd_apply_tiles(args):
               names=args.vars, intensity=not args.no_intensity,
               input_pattern=args.input_pattern, output_pattern=args.output_pattern,
               skip_existing=args.skip_existing, skip_missing=args.skip_missing,
-              compress=args.compress)
+              compress=args.compress, log=print)
 
 
 def add_apply_tiles_cli(subparsers):
