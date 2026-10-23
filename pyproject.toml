@@ -9,6 +9,22 @@ description = "Per-column system calibration for polarization-sensitive OCT"
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
+authors = [
+    { name = "Caroline Magnain" },
+    { name = "Jiachen Wan" },
+]
+keywords = ["oct", "ps-oct", "polarization", "calibration", "retardance", "mueller-matrix"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Image Processing",
+]
 dependencies = [
     "numpy>=1.21",
     "scipy>=1.7",
@@ -21,6 +37,11 @@ dependencies = [
 [project.optional-dependencies]
 test = ["pytest>=7"]
 
+[project.urls]
+Homepage = "https://github.com/CarolineMagnain/OpticalProcessing_scripts"
+Repository = "https://github.com/CarolineMagnain/OpticalProcessing_scripts"
+Issues = "https://github.com/CarolineMagnain/OpticalProcessing_scripts/issues"
+
 [project.scripts]
 psoct-calib = "psoct_calib.cli:main"
 
@@ -30,8 +51,15 @@ include = ["psoct_calib*"]
 exclude = ["tests*"]
 
 [tool.setuptools.package-data]
-psoct_calib = ["config/*.yaml"]
+psoct_calib = ["config/*.yaml", "py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = [".", "tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
