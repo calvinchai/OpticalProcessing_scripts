@@ -36,6 +36,11 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["pytest>=7"]
+dev = [
+    "pre-commit>=3.5",
+    "pytest>=7",
+    "ruff>=0.8",
+]
 
 [project.urls]
 Homepage = "https://github.com/CarolineMagnain/OpticalProcessing_scripts"
@@ -63,3 +68,4 @@ target-version = "py39"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
+ignore = ["E741"]

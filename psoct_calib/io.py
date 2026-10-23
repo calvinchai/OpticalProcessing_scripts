@@ -88,8 +88,7 @@ class JonesFile:
             self._h5 = h5py.File(path, "r")
             missing = [n for n in self.names if n not in self._h5]
             if missing:
-                raise KeyError(f"{missing} not found in {path}; "
-                               f"available: {list(self._h5.keys())}")
+                raise KeyError(f"{missing} not found in {path}; available: {list(self._h5.keys())}")
             dsets = [self._h5[n] for n in self.names]
             shapes = {d.shape for d in dsets}
             if len(shapes) != 1:

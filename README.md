@@ -160,7 +160,7 @@ The same processing is available in Python:
 ```python
 from psoct_calib.batch import process_tile, run_tiles
 
-out = process_tile(J1, J2, calibration_M)          # dict: Q, U, V, inten (float32)
+out = process_tile(J1, J2, calibration_M)  # dict: Q, U, V, inten (float32)
 run_tiles(path_in, path_out, "calibration_profile.mat", "normal0deg", slice_num=3, tiles="1-55")
 ```
 

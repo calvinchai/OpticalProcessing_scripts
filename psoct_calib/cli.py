@@ -17,11 +17,6 @@ import sys
 import numpy as np
 
 from . import __version__
-from .calibration import (
-    apply_calibration_jones,
-    calibrate_tilts,
-    extract_profile,
-)
 from .batch import (
     DEFAULT_INPUT_PATTERN,
     DEFAULT_OUTPUT_PATTERN,
@@ -29,6 +24,11 @@ from .batch import (
     NOSLICE_INPUT_PATTERN,
     NOSLICE_OUTPUT_PATTERN,
     run_tiles,
+)
+from .calibration import (
+    apply_calibration_jones,
+    calibrate_tilts,
+    extract_profile,
 )
 from .io import (
     JonesFile,
@@ -72,10 +72,24 @@ def _extract_one(path, tilt, i_range, k_range, sigma_stokes, offset, names, prof
     print(f"[extract] {tilt}: profile of length {len(Qa)} -> {profiles_path}")
 
 
-def _calibrate_and_save(profiles, output, sigma, reference, reference_tilt,
-                        warm_start, plot=None, plot_skip=10, with_meta=True):
-    results = calibrate_tilts(profiles, sigma=sigma, reference=reference,
-                              reference_tilt=reference_tilt, warm_start=warm_start)
+def _calibrate_and_save(
+    profiles,
+    output,
+    sigma,
+    reference,
+    reference_tilt,
+    warm_start,
+    plot=None,
+    plot_skip=10,
+    with_meta=True,
+):
+    results = calibrate_tilts(
+        profiles,
+        sigma=sigma,
+        reference=reference,
+        reference_tilt=reference_tilt,
+        warm_start=warm_start,
+    )
     calibration_MMs = {t: r.calibration_M for t, r in results.items()}
     meta = None
     if with_meta:
@@ -85,14 +99,15 @@ def _calibrate_and_save(profiles, output, sigma, reference, reference_tilt,
 
     for t, r in results.items():
         ref = f"{r.ref_tilt}[{r.ref_index}]" if r.ref_tilt else f"[{r.ref_index}]"
-        print(f"[calibrate] {t}: J={len(r.cost)}  ref={ref}  "
-              f"max cost={r.cost.max():.3e}")
+        print(f"[calibrate] {t}: J={len(r.cost)}  ref={ref}  max cost={r.cost.max():.3e}")
     print(f"[calibrate] wrote {sorted(calibration_MMs)} -> {output}")
 
     if plot:
         import matplotlib
+
         matplotlib.use("Agg")
         from .plotting import plot_calibrations
+
         plot_calibrations(results, profiles, plot, skip=plot_skip)
         print(f"[calibrate] figure -> {plot}")
     return results
@@ -106,8 +121,16 @@ def cmd_extract(args):
         sys.exit("--tilt can only be used with a single input file")
     for f in args.files:
         tilt = args.tilt or tilt_from_filename(f)
-        _extract_one(f, tilt, args.i_range, args.k_range, args.sigma_stokes,
-                     args.offset, args.vars, args.output)
+        _extract_one(
+            f,
+            tilt,
+            args.i_range,
+            args.k_range,
+            args.sigma_stokes,
+            args.offset,
+            args.vars,
+            args.output,
+        )
 
 
 def cmd_calibrate(args):
@@ -117,8 +140,17 @@ def cmd_calibrate(args):
         if missing:
             sys.exit(f"tilts {sorted(missing)} not in {args.profiles} ({sorted(profiles)})")
         profiles = {t: profiles[t] for t in args.tilts}
-    _calibrate_and_save(profiles, args.output, args.sigma, args.ref, args.ref_tilt,
-                        args.warm_start, args.plot, args.plot_skip, not args.no_meta)
+    _calibrate_and_save(
+        profiles,
+        args.output,
+        args.sigma,
+        args.ref,
+        args.ref_tilt,
+        args.warm_start,
+        args.plot,
+        args.plot_skip,
+        not args.no_meta,
+    )
 
 
 def cmd_apply(args):
@@ -139,11 +171,17 @@ def cmd_apply(args):
         # Stored like MATLAB v7.3 (h5py order K,J,I) so that h5read in MATLAB
         # returns (I,J,K). In Python, transpose(2,1,0) after reading.
         comp = "gzip" if args.compress else None
-        dsets = {n: out.create_dataset(n, shape=(K, J, I), dtype=dtype,
-                                       chunks=True, compression=comp) for n in "QUV"}
-        out.attrs.update(tilt=tilt, source=os.path.basename(args.file),
-                         calibration=os.path.basename(args.calib), version=__version__,
-                         layout="h5py order (K,J,I); MATLAB h5read order (I,J,K)")
+        dsets = {
+            n: out.create_dataset(n, shape=(K, J, I), dtype=dtype, chunks=True, compression=comp)
+            for n in "QUV"
+        }
+        out.attrs.update(
+            tilt=tilt,
+            source=os.path.basename(args.file),
+            calibration=os.path.basename(args.calib),
+            version=__version__,
+            layout="h5py order (K,J,I); MATLAB h5read order (I,J,K)",
+        )
         n_chunks = -(-I // args.chunk)
         for i0, i1, J1, J2 in tqdm(jf.iter_slabs(args.chunk), total=n_chunks, desc=tilt):
             Q, U, V = apply_calibration_jones(J1, J2, M, args.offset, dtype)
@@ -153,11 +191,13 @@ def cmd_apply(args):
 
 
 def _profile_is_current(entry, source, i_range, k_range, sigma_stokes, offset):
-    return (entry.get("source") == os.path.basename(source)
-            and tuple(entry.get("i_range", ())) == tuple(i_range)
-            and tuple(entry.get("k_range", ())) == tuple(k_range)
-            and np.isclose(entry.get("sigma_stokes", np.nan), sigma_stokes)
-            and np.isclose(entry.get("offset", 0.0), offset))
+    return (
+        entry.get("source") == os.path.basename(source)
+        and tuple(entry.get("i_range", ())) == tuple(i_range)
+        and tuple(entry.get("k_range", ())) == tuple(k_range)
+        and np.isclose(entry.get("sigma_stokes", np.nan), sigma_stokes)
+        and np.isclose(entry.get("offset", 0.0), offset)
+    )
 
 
 def cmd_init_config(args):
@@ -227,29 +267,52 @@ def cmd_run(args):
         path = os.path.join(data_dir, tc["file"])
         i_range, k_range = tuple(tc["i_range"]), tuple(tc["k_range"])
         s = float(tc.get("sigma_stokes", sigma_stokes))
-        if (not args.force and tilt in existing
-                and _profile_is_current(existing[tilt], path, i_range, k_range, s, offset)):
+        if (
+            not args.force
+            and tilt in existing
+            and _profile_is_current(existing[tilt], path, i_range, k_range, s, offset)
+        ):
             print(f"[extract] {tilt}: up to date in {profiles_path}, skipping")
             continue
         _extract_one(path, tilt, i_range, k_range, s, offset, names, profiles_path)
 
     profiles = load_profiles(profiles_path)
     profiles = {t: profiles[t] for t in tilts}
-    _calibrate_and_save(profiles, output, sigma_profile, reference, reference_tilt,
-                        bool(cfg.get("warm_start", False)), plot,
-                        int(cfg.get("plot_skip", 10)), bool(cfg.get("save_meta", True)))
+    _calibrate_and_save(
+        profiles,
+        output,
+        sigma_profile,
+        reference,
+        reference_tilt,
+        bool(cfg.get("warm_start", False)),
+        plot,
+        int(cfg.get("plot_skip", 10)),
+        bool(cfg.get("save_meta", True)),
+    )
 
 
 # --------------------------------------------------------------------------
 # parser
 # --------------------------------------------------------------------------
 def cmd_apply_tiles(args):
-    run_tiles(args.path_in, args.path_out, args.calib, args.tilt, args.slice,
-              tiles=args.tiles, sigma=args.sigma_stokes, offset=args.offset,
-              names=args.vars, intensity=not args.no_intensity,
-              input_pattern=args.input_pattern, output_pattern=args.output_pattern,
-              skip_existing=args.skip_existing, skip_missing=args.skip_missing,
-              compress=args.compress, log=print)
+    run_tiles(
+        args.path_in,
+        args.path_out,
+        args.calib,
+        args.tilt,
+        args.slice,
+        tiles=args.tiles,
+        sigma=args.sigma_stokes,
+        offset=args.offset,
+        names=args.vars,
+        intensity=not args.no_intensity,
+        input_pattern=args.input_pattern,
+        output_pattern=args.output_pattern,
+        skip_existing=args.skip_existing,
+        skip_missing=args.skip_missing,
+        compress=args.compress,
+        log=print,
+    )
 
 
 def add_apply_tiles_cli(subparsers):
@@ -259,52 +322,86 @@ def add_apply_tiles_cli(subparsers):
         description="Apply a calibration to every tile of one tilt and slice.",
     )
     t.add_argument("--tilt", required=True, help="e.g. normal0deg, tiltNeg20deg, tiltPos20deg")
-    t.add_argument("--slice", type=int, default=None,
-                   help="slice number in the filenames; omit for files named "
-                        "Jones_<tilt>_strip<TTTT>_PD12.mat")
+    t.add_argument(
+        "--slice",
+        type=int,
+        default=None,
+        help="slice number in the filenames; omit for files named "
+        "Jones_<tilt>_strip<TTTT>_PD12.mat",
+    )
     t.add_argument("--path-in", required=True, help="folder with the Jones .mat files")
     t.add_argument("--path-out", required=True, help="folder for the Q/U/V/dBI3D files")
     t.add_argument("--calib", required=True, help="calibration_profile.mat")
-    t.add_argument("--tiles", default=DEFAULT_TILES,
-                   help=f"tile numbers, inclusive: '1-55', '3', '1,4,10-12' (default {DEFAULT_TILES})")
-    t.add_argument("--sigma-stokes", type=float, default=1.0,
-                   help="Gaussian sigma for the Q/U/V volumes (default: 1)")
+    t.add_argument(
+        "--tiles",
+        default=DEFAULT_TILES,
+        help=f"tile numbers, inclusive: '1-55', '3', '1,4,10-12' (default {DEFAULT_TILES})",
+    )
+    t.add_argument(
+        "--sigma-stokes",
+        type=float,
+        default=1.0,
+        help="Gaussian sigma for the Q/U/V volumes (default: 1)",
+    )
     t.add_argument("--offset", type=float, default=0.0, help="phase offset in radians")
     t.add_argument("--vars", nargs=2, default=("J1", "J2"), metavar=("J1", "J2"))
     t.add_argument("--no-intensity", action="store_true", help="do not write dBI3D files")
-    t.add_argument("--input-pattern", default=None,
-                   help=f"default: {DEFAULT_INPUT_PATTERN} (with --slice) "
-                        f"or {NOSLICE_INPUT_PATTERN} (without)")
-    t.add_argument("--output-pattern", default=None,
-                   help=f"default: {DEFAULT_OUTPUT_PATTERN} (with --slice) "
-                        f"or {NOSLICE_OUTPUT_PATTERN} (without)")
-    t.add_argument("--skip-existing", action="store_true",
-                   help="skip tiles whose outputs already exist (restart an interrupted job)")
-    t.add_argument("--skip-missing", action="store_true",
-                   help="skip missing input tiles instead of stopping")
+    t.add_argument(
+        "--input-pattern",
+        default=None,
+        help=f"default: {DEFAULT_INPUT_PATTERN} (with --slice) "
+        f"or {NOSLICE_INPUT_PATTERN} (without)",
+    )
+    t.add_argument(
+        "--output-pattern",
+        default=None,
+        help=f"default: {DEFAULT_OUTPUT_PATTERN} (with --slice) "
+        f"or {NOSLICE_OUTPUT_PATTERN} (without)",
+    )
+    t.add_argument(
+        "--skip-existing",
+        action="store_true",
+        help="skip tiles whose outputs already exist (restart an interrupted job)",
+    )
+    t.add_argument(
+        "--skip-missing", action="store_true", help="skip missing input tiles instead of stopping"
+    )
     t.add_argument("--compress", action="store_true", help="compress the .mat files")
     t.set_defaults(func=cmd_apply_tiles)
     return t
 
 
 def build_parser():
-    p = argparse.ArgumentParser(prog="psoct-calib", description=__doc__,
-                                formatter_class=argparse.RawDescriptionHelpFormatter)
+    p = argparse.ArgumentParser(
+        prog="psoct-calib",
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     p.add_argument("--version", action="version", version=__version__)
     sub = p.add_subparsers(dest="command", required=True)
 
     def add_jones_opts(sp):
-        sp.add_argument("--vars", nargs=2, default=("J1", "J2"), metavar=("J1", "J2"),
-                        help="variable names of the Jones channels (default: J1 J2)")
-        sp.add_argument("--offset", type=float, default=0.0,
-                        help="phase offset in radians (default: 0)")
+        sp.add_argument(
+            "--vars",
+            nargs=2,
+            default=("J1", "J2"),
+            metavar=("J1", "J2"),
+            help="variable names of the Jones channels (default: J1 J2)",
+        )
+        sp.add_argument(
+            "--offset", type=float, default=0.0, help="phase offset in radians (default: 0)"
+        )
 
     e = sub.add_parser("extract", help="Jones file(s) -> reference profile(s) in a small .mat")
     e.add_argument("files", nargs="+")
     e.add_argument("--i-range", type=parse_range, required=True, help="START:STOP along I")
     e.add_argument("--k-range", type=parse_range, required=True, help="START:STOP along K")
-    e.add_argument("--sigma-stokes", type=float, default=1.0,
-                   help="Gaussian sigma for the Q/U/V volumes (default: 1)")
+    e.add_argument(
+        "--sigma-stokes",
+        type=float,
+        default=1.0,
+        help="Gaussian sigma for the Q/U/V volumes (default: 1)",
+    )
     e.add_argument("--tilt", help="key name (default: parsed from 'Jones_<tilt>_...')")
     e.add_argument("-o", "--output", default="profiles.mat")
     add_jones_opts(e)
@@ -313,19 +410,35 @@ def build_parser():
     c = sub.add_parser("calibrate", help="profiles.mat -> calibration_profile.mat")
     c.add_argument("profiles")
     c.add_argument("-o", "--output", default="calibration_profile.mat")
-    c.add_argument("--sigma", type=float, default=2.0,
-                   help="Gaussian sigma along J for the profile (default: 2)")
-    c.add_argument("--ref", type=parse_reference, default="max_v",
-                   help="reference column: 'max_v' (default) or an index")
-    c.add_argument("--ref-tilt", default=None,
-                   help="take the reference retarder from this tilt for all tilts")
+    c.add_argument(
+        "--sigma",
+        type=float,
+        default=2.0,
+        help="Gaussian sigma along J for the profile (default: 2)",
+    )
+    c.add_argument(
+        "--ref",
+        type=parse_reference,
+        default="max_v",
+        help="reference column: 'max_v' (default) or an index",
+    )
+    c.add_argument(
+        "--ref-tilt", default=None, help="take the reference retarder from this tilt for all tilts"
+    )
     c.add_argument("--tilts", nargs="+", help="only calibrate these tilts")
-    c.add_argument("--warm-start", action="store_true",
-                   help="start each column's fit from the previous solution")
+    c.add_argument(
+        "--warm-start",
+        action="store_true",
+        help="start each column's fit from the previous solution",
+    )
     c.add_argument("--no-meta", action="store_true", help="do not store the 'meta' struct")
     c.add_argument("--plot", help="save a diagnostic figure to this path")
-    c.add_argument("--plot-skip", type=int, default=10,
-                   help="omit the first N columns in the plot (default: 10)")
+    c.add_argument(
+        "--plot-skip",
+        type=int,
+        default=10,
+        help="omit the first N columns in the plot (default: 10)",
+    )
     c.set_defaults(func=cmd_calibrate)
 
     a = sub.add_parser("apply", help="apply a calibration to a full Jones volume")
@@ -339,22 +452,37 @@ def build_parser():
     add_jones_opts(a)
     a.set_defaults(func=cmd_apply)
 
-    ic = sub.add_parser("init-config", help="generate a starter configuration file from bundled template")
-    ic.add_argument("-o", "--output", default="calib_config.yaml",
-                    help="destination path for config file (default: calib_config.yaml)")
-    ic.add_argument("--example", action="store_true",
-                    help="use calib_config.example.yaml template")
-    ic.add_argument("--force", action="store_true",
-                    help="overwrite destination file if it already exists")
-    ic.add_argument("--print", action="store_true",
-                    help="print configuration template to stdout instead of writing file")
+    ic = sub.add_parser(
+        "init-config",
+        help="generate a starter configuration file from bundled template",
+    )
+    ic.add_argument(
+        "-o",
+        "--output",
+        default="calib_config.yaml",
+        help="destination path for config file (default: calib_config.yaml)",
+    )
+    ic.add_argument("--example", action="store_true", help="use calib_config.example.yaml template")
+    ic.add_argument(
+        "--force", action="store_true", help="overwrite destination file if it already exists"
+    )
+    ic.add_argument(
+        "--print",
+        action="store_true",
+        help="print configuration template to stdout instead of writing file",
+    )
     ic.set_defaults(func=cmd_init_config)
 
     r = sub.add_parser("run", help="extract + calibrate all tilts from a YAML config")
-    r.add_argument("config", nargs="?", default="calib_config.yaml",
-                   help="path to YAML config (default: calib_config.yaml in current directory)")
-    r.add_argument("--force", action="store_true",
-                   help="re-extract profiles even if they are up to date")
+    r.add_argument(
+        "config",
+        nargs="?",
+        default="calib_config.yaml",
+        help="path to YAML config (default: calib_config.yaml in current directory)",
+    )
+    r.add_argument(
+        "--force", action="store_true", help="re-extract profiles even if they are up to date"
+    )
     r.set_defaults(func=cmd_run)
 
     add_apply_tiles_cli(sub)

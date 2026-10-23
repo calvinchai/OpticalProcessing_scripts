@@ -1,4 +1,5 @@
 """Bundled configuration templates and utilities."""
+
 import sys
 from pathlib import Path
 

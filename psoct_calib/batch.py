@@ -35,12 +35,12 @@ import time
 import numpy as np
 from scipy.io import savemat
 
-logger = logging.getLogger(__name__)
-
 from .calibration import apply_calibration
 from .io import JonesFile, check_key, load_calibration
 from .mueller import retarder_params_from_stokes
 from .stokes import jones_to_retardance_orientation, stokes_from_orientation_retardance
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_INPUT_PATTERN = "Jones_{tilt}_slice{slice}_strip{tile:04d}_PD12.mat"
 DEFAULT_OUTPUT_PATTERN = "{prefix}_{tilt}_slice{slice}_strip{tile:04d}.mat"
@@ -51,7 +51,7 @@ DEFAULT_TILES = "1-55"
 # (file prefix, variable name inside the .mat file)
 OUTPUTS = (("Q", "Q"), ("U", "U"), ("V", "V"), ("dBI3D", "inten"))
 
-_MAT5_LIMIT = 2**32 - 1   # bytes per variable scipy.io.savemat can write (v5 format)
+_MAT5_LIMIT = 2**32 - 1  # bytes per variable scipy.io.savemat can write (v5 format)
 
 
 # --------------------------------------------------------------------------
@@ -128,7 +128,7 @@ def _save_var(path, var, arr, compress=False):
             f"{os.path.basename(path)}: '{var}' is {arr.nbytes / 2**30:.2f} GiB, above "
             "the 4 GiB per-variable limit of .mat files written by scipy.io.savemat."
         )
-    tmp = path[:-4] + ".part.mat"   # write then rename: no half-written outputs
+    tmp = path[:-4] + ".part.mat"  # write then rename: no half-written outputs
     savemat(tmp, {var: arr}, do_compression=compress)
     os.replace(tmp, path)
 
@@ -147,26 +147,43 @@ def resolve_patterns(slice_num, input_pattern=None, output_pattern=None):
     if not with_slice:
         for name, pat in (("input", input_pattern), ("output", output_pattern)):
             if "{slice" in pat:
-                raise ValueError(f"the {name} pattern '{pat}' uses {{slice}} but no slice "
-                                 "number was given")
+                raise ValueError(
+                    f"the {name} pattern '{pat}' uses {{slice}} but no slice number was given"
+                )
     return input_pattern, output_pattern
 
 
-def output_paths(path_out, tilt, slice_num, tile, intensity=True,
-                 output_pattern=DEFAULT_OUTPUT_PATTERN):
+def output_paths(
+    path_out, tilt, slice_num, tile, intensity=True, output_pattern=DEFAULT_OUTPUT_PATTERN
+):
     """{prefix: path} of the files written for one tile."""
     return {
-        prefix: os.path.join(path_out, output_pattern.format(
-            prefix=prefix, tilt=tilt, slice=slice_num, tile=tile))
+        prefix: os.path.join(
+            path_out, output_pattern.format(prefix=prefix, tilt=tilt, slice=slice_num, tile=tile)
+        )
         for prefix, _ in OUTPUTS
         if intensity or prefix != "dBI3D"
     }
 
 
-def run_tiles(path_in, path_out, calib, tilt, slice_num=None, tiles=DEFAULT_TILES,
-              sigma=1.0, offset=0.0, names=("J1", "J2"), intensity=True,
-              input_pattern=None, output_pattern=None,
-              skip_existing=False, skip_missing=False, compress=False, log=None):
+def run_tiles(
+    path_in,
+    path_out,
+    calib,
+    tilt,
+    slice_num=None,
+    tiles=DEFAULT_TILES,
+    sigma=1.0,
+    offset=0.0,
+    names=("J1", "J2"),
+    intensity=True,
+    input_pattern=None,
+    output_pattern=None,
+    skip_existing=False,
+    skip_missing=False,
+    compress=False,
+    log=None,
+):
     """Process every tile of one tilt and slice.
 
     Parameters
@@ -222,8 +239,10 @@ def run_tiles(path_in, path_out, calib, tilt, slice_num=None, tiles=DEFAULT_TILE
         with JonesFile(src, names=names) as jf:
             I, J, K = jf.shape
             if M.shape[0] != J:
-                raise ValueError(f"calibration '{tilt}' has {M.shape[0]} columns, "
-                                 f"{os.path.basename(src)} has J={J}")
+                raise ValueError(
+                    f"calibration '{tilt}' has {M.shape[0]} columns, "
+                    f"{os.path.basename(src)} has J={J}"
+                )
             J1, J2 = jf.read(0, I, 0, K)
         res = process_tile(J1, J2, M, sigma, offset, intensity)
         del J1, J2
@@ -232,8 +251,10 @@ def run_tiles(path_in, path_out, calib, tilt, slice_num=None, tiles=DEFAULT_TILE
             if prefix in outs:
                 _save_var(outs[prefix], var, res[var], compress)
         done.append(tile)
-        log(f"  tile {tile} ({n}/{len(tiles)}): {os.path.basename(src)} "
-            f"(I,J,K)={res['Q'].shape}  {time.time() - t0:.1f} s")
+        log(
+            f"  tile {tile} ({n}/{len(tiles)}): {os.path.basename(src)} "
+            f"(I,J,K)={res['Q'].shape}  {time.time() - t0:.1f} s"
+        )
     log("Done.")
     return done
 
@@ -244,4 +265,5 @@ def run_tiles(path_in, path_out, calib, tilt, slice_num=None, tiles=DEFAULT_TILE
 def add_cli(subparsers):
     """Register 'apply-tiles' with an argparse subparsers object (moved to cli.py)."""
     from .cli import add_apply_tiles_cli
+
     return add_apply_tiles_cli(subparsers)
