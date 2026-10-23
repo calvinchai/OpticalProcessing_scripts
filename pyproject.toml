@@ -29,6 +29,9 @@ where = ["."]
 include = ["psoct_calib*"]
 exclude = ["tests*"]
 
+[tool.setuptools.package-data]
+psoct_calib = ["config/*.yaml"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = [".", "tests"]

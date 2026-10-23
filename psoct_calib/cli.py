@@ -1,9 +1,10 @@
 """Command-line interface.
 
+    psoct-calib init-config [-o calib_config.yaml]
     psoct-calib extract   FILE... --i-range A:B --k-range A:B -o profiles.mat
     psoct-calib calibrate profiles.mat -o calibration_profile.mat [--plot fig.png]
     psoct-calib apply     FILE --calib calibration_profile.mat -o corrected.h5
-    psoct-calib run       config.yaml
+    psoct-calib run       [config.yaml]
     psoct-calib apply-tiles --tilt T --slice N --path-in DIR --path-out DIR --calib FILE
 
 Ranges are 0-based and half-open (Python slicing): MATLAB 4001:5000 -> 4000:5000.
@@ -152,12 +153,47 @@ def _profile_is_current(entry, source, i_range, k_range, sigma_stokes, offset):
             and np.isclose(entry.get("offset", 0.0), offset))
 
 
+def cmd_init_config(args):
+    from .config import get_config_template
+
+    template_name = "calib_config.example.yaml" if args.example else "calib_config.yaml"
+    try:
+        content = get_config_template(template_name)
+    except Exception as exc:
+        sys.exit(f"Error loading template '{template_name}': {exc}")
+
+    if args.print:
+        sys.stdout.write(content)
+        return
+
+    dest = args.output
+    if os.path.exists(dest) and not args.force:
+        sys.exit(f"Error: Destination file '{dest}' already exists. Use --force to overwrite.")
+
+    dest_dir = os.path.dirname(os.path.abspath(dest))
+    if dest_dir:
+        os.makedirs(dest_dir, exist_ok=True)
+
+    with open(dest, "w", encoding="utf-8") as fh:
+        fh.write(content)
+
+    print(f"[init-config] Created {dest} from bundled {template_name}")
+
+
 def cmd_run(args):
     import yaml
 
-    with open(args.config) as fh:
+    config_path = args.config or "calib_config.yaml"
+    if not os.path.exists(config_path):
+        sys.exit(
+            f"Error: Config file '{config_path}' not found.\n"
+            f"Run 'psoct-calib init-config' to generate a starter config, "
+            f"or specify an existing path: psoct-calib run <path/to/config.yaml>"
+        )
+
+    with open(config_path) as fh:
         cfg = yaml.safe_load(fh)
-    base = os.path.dirname(os.path.abspath(args.config))
+    base = os.path.dirname(os.path.abspath(config_path))
 
     def resolve(p):
         return p if os.path.isabs(p) else os.path.join(base, p)
@@ -252,8 +288,20 @@ def build_parser():
     add_jones_opts(a)
     a.set_defaults(func=cmd_apply)
 
+    ic = sub.add_parser("init-config", help="generate a starter configuration file from bundled template")
+    ic.add_argument("-o", "--output", default="calib_config.yaml",
+                    help="destination path for config file (default: calib_config.yaml)")
+    ic.add_argument("--example", action="store_true",
+                    help="use calib_config.example.yaml template")
+    ic.add_argument("--force", action="store_true",
+                    help="overwrite destination file if it already exists")
+    ic.add_argument("--print", action="store_true",
+                    help="print configuration template to stdout instead of writing file")
+    ic.set_defaults(func=cmd_init_config)
+
     r = sub.add_parser("run", help="extract + calibrate all tilts from a YAML config")
-    r.add_argument("config")
+    r.add_argument("config", nargs="?", default="calib_config.yaml",
+                   help="path to YAML config (default: calib_config.yaml in current directory)")
     r.add_argument("--force", action="store_true",
                    help="re-extract profiles even if they are up to date")
     r.set_defaults(func=cmd_run)

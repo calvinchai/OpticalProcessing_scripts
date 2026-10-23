@@ -90,3 +90,30 @@ def test_run_config_and_shared_reference(tmp_path, capsys):
     assert set(raw) == set(TILTS) | {"meta"}
     refs = {raw["meta"][t]["ref_tilt"] for t in TILTS}
     assert refs == {"normal0deg"}
+
+
+def test_init_config(tmp_path, capsys):
+    out = tmp_path / "custom_config.yaml"
+    main(["init-config", "-o", str(out)])
+    assert out.exists()
+    assert "data_dir:" in out.read_text()
+
+    # Overwrite fails without --force
+    with pytest.raises(SystemExit):
+        main(["init-config", "-o", str(out)])
+
+    # Overwrite succeeds with --force
+    main(["init-config", "-o", str(out), "--force"])
+    assert out.exists()
+
+    # --example flag
+    out_example = tmp_path / "example_config.yaml"
+    main(["init-config", "-o", str(out_example), "--example"])
+    assert out_example.exists()
+    assert "data_dir:" in out_example.read_text()
+
+    # --print flag
+    main(["init-config", "--print"])
+    captured = capsys.readouterr().out
+    assert "data_dir:" in captured
+
