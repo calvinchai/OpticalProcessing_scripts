@@ -10,6 +10,24 @@ are stored in a single small `.mat` file.
 
 ## Install
 
+### Directly from Git
+
+Install the latest version directly using `pip`:
+
+```bash
+pip install "git+https://github.com/CarolineMagnain/OpticalProcessing_scripts.git"
+```
+
+To include test dependencies:
+
+```bash
+pip install "git+https://github.com/CarolineMagnain/OpticalProcessing_scripts.git#egg=psoct-calib[test]"
+```
+
+### From Source (Development)
+
+Clone the repository and install in editable mode:
+
 ```bash
 git clone https://github.com/CarolineMagnain/OpticalProcessing_scripts.git
 cd OpticalProcessing_scripts
