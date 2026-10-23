@@ -12,7 +12,7 @@ are stored in a single small `.mat` file.
 
 ```bash
 git clone https://github.com/CarolineMagnain/OpticalProcessing_scripts.git
-cd OCTAnalysis/psoct-calib
+cd OpticalProcessing_scripts
 pip install -e ".[test]"
 ```
 
@@ -154,7 +154,7 @@ run_tiles(path_in, path_out, "calibration_profile.mat", "normal0deg", slice_num=
 ## Package layout
 
 ```
-src/psoct_calib/
+psoct_calib/
   mueller.py      rotation and linear-retarder Mueller matrices, Stokes <-> retarder
   stokes.py       Jones -> (R, O) -> normalized Q, U, V
   io.py           lazy v7.3 (HDF5) reader, small .mat read/write
