@@ -225,47 +225,9 @@ def run_tiles(path_in, path_out, calib, tilt, slice_num=None, tiles=DEFAULT_TILE
 
 
 # --------------------------------------------------------------------------
-# command line: registered in cli.py as 'psoct-calib apply-tiles'
+# CLI registration compatibility shim (moved to psoct_calib.cli)
 # --------------------------------------------------------------------------
-def _cmd_apply_tiles(args):
-    run_tiles(args.path_in, args.path_out, args.calib, args.tilt, args.slice,
-              tiles=args.tiles, sigma=args.sigma_stokes, offset=args.offset,
-              names=args.vars, intensity=not args.no_intensity,
-              input_pattern=args.input_pattern, output_pattern=args.output_pattern,
-              skip_existing=args.skip_existing, skip_missing=args.skip_missing,
-              compress=args.compress)
-
-
 def add_cli(subparsers):
-    t = subparsers.add_parser(
-        "apply-tiles",
-        help="apply a calibration to all tiles of one tilt/slice (Q, U, V, dBI3D .mat files)",
-        description=__doc__.split("\n\n")[0],
-    )
-    t.add_argument("--tilt", required=True, help="e.g. normal0deg, tiltNeg20deg, tiltPos20deg")
-    t.add_argument("--slice", type=int, default=None,
-                   help="slice number in the filenames; omit for files named "
-                        "Jones_<tilt>_strip<TTTT>_PD12.mat")
-    t.add_argument("--path-in", required=True, help="folder with the Jones .mat files")
-    t.add_argument("--path-out", required=True, help="folder for the Q/U/V/dBI3D files")
-    t.add_argument("--calib", required=True, help="calibration_profile.mat")
-    t.add_argument("--tiles", default=DEFAULT_TILES,
-                   help=f"tile numbers, inclusive: '1-55', '3', '1,4,10-12' (default {DEFAULT_TILES})")
-    t.add_argument("--sigma-stokes", type=float, default=1.0,
-                   help="Gaussian sigma for the Q/U/V volumes (default: 1)")
-    t.add_argument("--offset", type=float, default=0.0, help="phase offset in radians")
-    t.add_argument("--vars", nargs=2, default=("J1", "J2"), metavar=("J1", "J2"))
-    t.add_argument("--no-intensity", action="store_true", help="do not write dBI3D files")
-    t.add_argument("--input-pattern", default=None,
-                   help=f"default: {DEFAULT_INPUT_PATTERN} (with --slice) "
-                        f"or {NOSLICE_INPUT_PATTERN} (without)")
-    t.add_argument("--output-pattern", default=None,
-                   help=f"default: {DEFAULT_OUTPUT_PATTERN} (with --slice) "
-                        f"or {NOSLICE_OUTPUT_PATTERN} (without)")
-    t.add_argument("--skip-existing", action="store_true",
-                   help="skip tiles whose outputs already exist (restart an interrupted job)")
-    t.add_argument("--skip-missing", action="store_true",
-                   help="skip missing input tiles instead of stopping")
-    t.add_argument("--compress", action="store_true", help="compress the .mat files")
-    t.set_defaults(func=_cmd_apply_tiles)
-    return t
+    """Register 'apply-tiles' with an argparse subparsers object (moved to cli.py)."""
+    from .cli import add_apply_tiles_cli
+    return add_apply_tiles_cli(subparsers)
